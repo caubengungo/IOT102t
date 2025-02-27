@@ -1,355 +1,335 @@
-#include <LiquidCrystal_I2C.h>
-#include <Keypad.h>
 #include <Adafruit_Fingerprint.h>
 #include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Keypad.h>
 #include <Servo.h>
 #include <EEPROM.h>
 
-// declare lcd using I2C driver
+// Khai báo LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// Declare fingerprint using Adafruit_Fingerprint
-#if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
+// Khai báo Servo
+Servo doorLock;
+#define SERVO_PIN 12
+
+// Khai báo cảm biến vân tay
 SoftwareSerial mySerial(2, 3);
-#else
-#define mySerial Serial1
-#endif
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
-// Declare servo using Servo
-Servo myservo;
-
-// Keypad 4x4
+// Khai báo Keypad
 const byte ROWS = 4;
 const byte COLS = 4;
 char keys[ROWS][COLS] = {
-    {'1', '2', '3', 'A'},
-    {'4', '5', '6', 'B'},
-    {'7', '8', '9', 'C'},
-    {'*', '0', '#', 'D'}
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
 };
-byte rowPins[ROWS] = {4, 5, 6, 7};
-byte colPins[COLS] = {8, 9, 10, 11};
+byte rowPins[ROWS] = {11, 10, 9, 8};
+byte colPins[COLS] = {7, 6, 5, 4};
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-// Save passcode into EEPROM
-const int PASSCODE_ADDR = 0;
-char storedPasscode[5] = "1234";
+// Mã PIN lưu trong EEPROM (4 ký tự)
+#define PIN_ADDRESS 0
+char pinCode[5] = "1234";
 
 void setup() {
-    myservo.attach(12);
-    myservo.write(150); //Default the door will be closed
-    
-    lcd.init();
-    lcd.backlight();
-    lcd.clear();
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+  doorLock.attach(SERVO_PIN);
+  doorLock.write(0); // Khóa cửa ban đầu
 
-    Serial.begin(9600);
-
-    //Begin: khu vực của vân tay, không đụng đến
-    while (!Serial);  // For Yun/Leo/Micro/Zero/...
-    delay(100);
-    Serial.println("\n\nAdafruit finger detect test");
-    // set the data rate for the sensor serial port
-    finger.begin(57600);
-    delay(5);
-    if (finger.verifyPassword()) {
-      Serial.println("Found fingerprint sensor!");
-    } else {
-      Serial.println("Did not find fingerprint sensor :(");
-      while (1) { delay(1); }
-    }
-
-    Serial.println(F("Reading sensor parameters"));
-    finger.getParameters();
-    Serial.print(F("Status: 0x")); Serial.println(finger.status_reg, HEX);
-    Serial.print(F("Sys ID: 0x")); Serial.println(finger.system_id, HEX);
-    Serial.print(F("Capacity: ")); Serial.println(finger.capacity);
-    Serial.print(F("Security level: ")); Serial.println(finger.security_level);
-    Serial.print(F("Device address: ")); Serial.println(finger.device_addr, HEX);
-    Serial.print(F("Packet len: ")); Serial.println(finger.packet_len);
-    Serial.print(F("Baud rate: ")); Serial.println(finger.baud_rate);
-
-    finger.getTemplateCount();  // Get number of fingerprints from fgp sensor
-
-    if (finger.templateCount == 0) {
-        Serial.print("Sensor doesn't contain any fingerprint data. Please run the 'enroll' example.");
-    } else {
-        Serial.println("Waiting for valid finger...");
-        Serial.print("Sensor contains "); 
-        Serial.print(finger.templateCount); 
-        Serial.println(" templates");
-    }
-    //END: khu vực của vân tay
-
-    loadPasscode();
+  finger.begin(57600);
+  if (finger.verifyPassword()) {
+    Serial.println("Fingerprint sensor found!");
+  } else {
+    Serial.println("Fingerprint sensor not found!");
+    while (1);
+  }
+  EEPROM.get(PIN_ADDRESS, pinCode);
 }
 
 void loop() {
-    lcd.clear();
-    lcd.print("1: Fingerprint");
-    lcd.setCursor(0, 1);
-    lcd.print("2: Enter Code 3:Change");
-    char key = keypad.getKey();
-    
-    if (key == '1') {
-        loginFingerPrint();
-    } else if (key == '2') {
-        loginPasscode();
-    } else if (key == '3') {
-        manageMenu();
-    }
-}
-
-//--------------------------------------------------------------------------------------------------------
-
-void loadPasscode() {
-    int len = EEPROM.read(PASSCODE_ADDR);  // Đọc độ dài của passcode từ EEPROM
-    if (len > 0 && len <= 16) {  // Giới hạn độ dài passcode để tránh lỗi
-        memset(storedPasscode, '\0', sizeof(storedPasscode));  // Xóa dữ liệu cũ
-        for (int i = 0; i < len; i++) {
-            storedPasscode[i] = EEPROM.read(PASSCODE_ADDR + 1 + i);  // Đọc từng ký tự passcode
-        }
-    }
-}
-
-//--------------------------------------------------------------------------------------------------------
-
-void openDoor() {
-    myservo.write(45);
-    delay(3000);
-    closeDoor();
-}
-
-void closeDoor() {
-    myservo.write(150);
-}
-
-//--------------------------------------------------------------------------------------------------------
-
-//Option 1: Khi vào đăng nhập bằng vân tay
-void loginFingerPrint() {
-    lcd.clear();
-    lcd.print("Place Finger");
-    lcd.setCursor(0, 1);
-    lcd.print("Press * to Exit");
-    int fingerprintID = -1; //khởi tạo giá trị ban đầu -1 nghĩa là vân tay không hợp lệ
-
-    while (millis() - startTime < 5000) {  // Chờ max 5 giây
-        char key = keypad.getKey();  // Kiểm tra nếu có phím bấm
-        if (key == '#') {  // bấm '*' thùi user quay lại menu chính
-            return;
-        }
-        fingerprintID = getFingerprintID();
-        if (fingerprintID >= 0) break;  // Có vân tay hợp lệ -> thoát khỏi vòng lặp
-    }
-
-    if (fingerprintID >= 0) {
-        lcd.clear();
-        lcd.print("Access Granted");
-        lcd.setCursor(0, 1);
-        lcd.print("With ID: ");
-        lcd.print(fingerprintID);
-        openDoor();
-    } else {
-        lcd.clear();
-        lcd.print("Access Denied");
-        delay(2000);
-    }
-}
-
-//--------------------------------------------------------------------------------------------------------
-
-////Option 2: Khi vào đăng nhập bằng vân tay
-void loginPasscode() {
-    lcd.clear();
-    lcd.print("Enter Passcode:");
-    lcd.setCursor(0, 1);
-    String enteredPasscode = "";
-    char key;
-    while (true) {
-        key = keypad.getKey();
-        if (key) {
-            if (key == '#') break;
-            enteredPasscode += key;
-            lcd.print('*');
-        }
-    }
-    if (enteredPasscode == storedPasscode) {
-        lcd.clear();
-        lcd.print("Access Granted");
-        openDoor();
-    } else {
-        lcd.clear();
-        lcd.print("Wrong Passcode");
-        delay(2000);
-    }
-}
-
-//--------------------------------------------------------------------------------------------------------
-
-////Option 3: Chọn chức năng phụ
-void manageMenu() {
-    lcd.clear();
-    lcd.print("1:Add 2:Del 3:Pass");
-    char key = keypad.getKey();
-    if (key == '1') {
-        registerFingerprint();
-    } else if (key == '2') {
-        deleteFingerprint();
-    } else if (key == '3') {
-        changePasscode();
-    }
-}
-
-//Option 3 -> thêm vân tay
-void registerFingerprint() {
-    lcd.clear();
-    lcd.print("Enter ID:");
-    
-    // Nhập ID từ Keypad
-    String idStr = "";
-    char key;
-    while (true) {
-        key = keypad.getKey();
-        if (key == '#') break;  // Nhấn '#' để xác nhận ID
-        if (key && isDigit(key)) {
-            idStr += key;
-            lcd.setCursor(idStr.length(), 1);
-            lcd.print(key);
-        }
-    }
-    
-    int id = idStr.toInt();  // Chuyển chuỗi ID thành số nguyên
-    if (id <= 0 || id > 127) {
-        lcd.clear();
-        lcd.print("Invalid ID");
-        delay(2000);
-        return;
-    }
-
-    // Kiểm tra xem ID đã tồn tại chưa
-    if (finger.loadModel(id) == FINGERPRINT_OK) {
-        lcd.clear();
-        lcd.print("ID Exists!");
-        delay(2000);
-        return;
-    }
-
-    lcd.clear();
-    lcd.print("Place Finger");
-
-    // Lấy ảnh vân tay lần 1
-    while (finger.getImage() != FINGERPRINT_OK) {
-      if (millis() - startTime > 10000) {
-          lcd.clear();
-          lcd.print("Timeout!");
-          delay(2000);
-          return;
-      }
-    }
-    finger.image2Tz(1);
-
-    lcd.clear();
-    lcd.print("Remove Finger");
-    delay(2000);
-
-    // Lấy ảnh vân tay lần 2
-    lcd.clear();
-    lcd.print("Place Again");
-    while (finger.getImage() != FINGERPRINT_OK) {
-      if (millis() - startTime > 10000) {
-          lcd.clear();
-          lcd.print("Timeout!");
-          delay(2000);
-          return;
-      }
-    }
-    finger.image2Tz(2);
-
-    // So sánh hai ảnh
-    if (finger.createModel() != FINGERPRINT_OK) {
-        lcd.clear();
-        lcd.print("Match Failed");
-        delay(2000);
-        return;
-    }
-
-    // Lưu vân tay vào ID đã nhập
-    if (finger.storeModel(id) == FINGERPRINT_OK) {
-        lcd.clear();
-        lcd.print("Fingerprint Saved");
-    } else {
-        lcd.clear();
-        lcd.print("Save Failed");
-    }
-    delay(2000);
-}
-
-//--------------------------------------------------------------------------------------------------------
-
-//Option 3 -> xoá vân tay
-void deleteFingerprint() {
   lcd.clear();
-    lcd.print("Enter ID to Del:");
-
-    // Nhập ID từ Keypad
-    String idStr = "";
-    char key;
-    while (true) {
-        key = keypad.getKey();
-        if (key == '#') break;  // Nhấn '#' để xác nhận ID
-        if (key && isDigit(key)) {
-            idStr += key;
-            lcd.setCursor(idStr.length(), 1);
-            lcd.print(key);
-        }
-    }
-
-    int id = idStr.toInt();  // Chuyển chuỗi ID thành số nguyên
-    if (id <= 0 || id > 127) {
-        lcd.clear();
-        lcd.print("Invalid ID");
-        delay(2000);
-        return;
-    }
-
-    // Kiểm tra xem ID có tồn tại không trước khi xóa
-    if (finger.loadModel(id) != FINGERPRINT_OK) {
-        lcd.clear();
-        lcd.print("ID Not Found!");
-        delay(2000);
-        return;
-    }
-
-    // Xóa vân tay nếu ID hợp lệ
-    if (finger.deleteModel(id) == FINGERPRINT_OK) {
-        lcd.clear();
-        lcd.print("Fingerprint Deleted");
-    } else {
-        lcd.clear();
-        lcd.print("Delete Failed!");
-    }
-    delay(2000);
+  lcd.setCursor(0, 0);
+  lcd.print("1.Fingerprint");
+  lcd.setCursor(0, 1);
+  lcd.print("2.PIN | 3.Menu");
+  
+  char choice = waitForInput();
+  if (choice == '1') {
+    fingerprintLogin();
+  } else if (choice == '2') {
+    pinLogin();
+  } else if (choice == '3') {
+    menu();
+  }
 }
 
-//--------------------------------------------------------------------------------------------------------
-
-void changePasscode() {
-    lcd.clear();
-    lcd.print("New Passcode:");
-    String newPasscode = "";
-    char key;
-    while (true) {
-        key = keypad.getKey();
-        if (key) {
-            if (key == '#') break;
-            newPasscode += key;
-            lcd.print('*');
-        }
+// Chờ nhập từ keypad
+char waitForInput() {
+  char key;
+  while (1) {
+    key = keypad.getKey();
+    if (key) {
+      if (key == '1' || key == '2' || key == '3' || key == '#') {
+        return key;
+      }
     }
-    newPasscode.toCharArray(storedPasscode, 5);
-    EEPROM.put(PASSCODE_ADDR, storedPasscode);
+  }
+}
+
+void inputPIN(char input[5], boolean *successInput) {
+  int i = 0;
+  while (i < 4) {
+    char key = keypad.getKey();
+    if (key) {
+      if (!isdigit(key) && key != '#') {
+        lcd.clear();
+        lcd.print("PIN must be...");
+        lcd.setCursor(6,1);
+        lcd.print("...number!");
+        delay(3000);
+        return;
+      }
+      if (key == '#') {
+        lcd.clear();
+        lcd.print("Canceled!");
+        delay(3000);
+        return;
+      }
+      input[i++] = key;
+      lcd.setCursor(i, 1);
+      lcd.print('*');
+    }
+  }
+  input[i] = '\0';
+  *successInput = true;
+}
+
+void inputIDFinger(int *id) {
+  int numDigits = 0;
+  char key;
+
+  // Nhập ID với hiển thị số
+  while (1) {
+    key = keypad.getKey();
+    if (key) {
+      if (key == '#') { // Hủy quá trình nếu bấm #
+        lcd.clear();
+        lcd.print("Canceled!");
+        delay(2000);
+        return;
+      }
+      if (isdigit(key) && numDigits < 3) { // Giới hạn 3 chữ số
+        *id = *id * 10 + (key - '0');
+        numDigits++;
+        lcd.setCursor(0, 1);
+        lcd.print(*id);
+      }
+      if (key == '*') break; // Nhấn * để xác nhận ID
+    }
+  }
+}
+
+// Đăng nhập bằng vân tay
+void fingerprintLogin() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Place Finger...");
+
+  int attempts = 5;
+  while (attempts--) {
+    if (finger.getImage() == FINGERPRINT_OK) {
+      if (finger.image2Tz() == FINGERPRINT_OK && finger.fingerFastSearch() == FINGERPRINT_OK) {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Access Granted!");
+
+        // Hiển thị ID ở dòng thứ 2
+        lcd.setCursor(0, 1);
+        lcd.print("User ID: ");
+        lcd.print(finger.fingerID);
+
+        // Mở khóa cửa
+        doorLock.write(90);
+        delay(5000);
+        doorLock.write(0);
+        return;
+      }
+    }
+    delay(1000);
+  }
+  lcd.clear();
+  lcd.print("Access Denied!");
+  delay(3000);
+}
+
+// Đăng nhập bằng mã PIN
+void pinLogin() {
+  lcd.clear();
+  lcd.print("Enter PIN:");
+  char input[5] = "";
+  boolean successInput = false;
+  inputPIN(input, &successInput);
+  
+  if (successInput) {
+    if (strcmp(input, pinCode) == 0) {
+      lcd.clear();
+      lcd.print("Access Granted!");
+      doorLock.write(90);
+      delay(5000);
+      doorLock.write(0);
+    } else {
+      lcd.clear();
+      lcd.print("Access Denied!");
+      delay(3000);
+    }
+  }
+}
+
+// Menu quản lý
+void menu() {
+  lcd.clear();
+  lcd.print("Enter PIN:");
+  // Nhập mã PIN trước khi vào menu
+  char input[5] = "";
+  boolean successInput = false;
+  inputPIN(input, &successInput);
+
+  if (successInput) {
+    // Kiểm tra mã PIN
+    if (strcmp(input, pinCode) != 0) {
+      lcd.clear();
+      lcd.print("Access Denied!");
+      delay(3000);
+      return; // Thoát khỏi menu nếu mã PIN sai
+    }
+
+    // Nếu đúng, vào menu
     lcd.clear();
-    lcd.print("Passcode Updated");
+    lcd.print("1.Modify Finger");
+    lcd.setCursor(0, 1);
+    lcd.print("2.Change PIN");
+
+    char choice = waitForInput();
+    if (choice == '1') modifyFinger();
+    else if (choice == '2') changePin();
+  }
+}
+
+// Thêm hoặc xóa vân tay
+void modifyFinger() {
+  lcd.clear();
+  lcd.print("1.Add finger");
+  lcd.setCursor(0,1);
+  lcd.print("2.Delete finger");
+  char choice = waitForInput();
+  if (choice == '1') addFinger();
+  else if (choice == '2') deleteFinger();
+}
+
+// Thêm dấu vân tay
+void addFinger() {
+  lcd.clear();
+  lcd.print("Enter ID (0-127):");
+  int id = 0;
+  
+  inputIDFinger(&id);
+
+   // Kiểm tra ID hợp lệ
+  if (id < 0 || id > 127) {
+    lcd.clear();
+    lcd.print("Invalid ID!");
+    delay(3000);
+    return;
+  }
+
+  lcd.clear();
+  lcd.print("Place Finger...");
+  while (finger.getImage() != FINGERPRINT_OK);
+  if (finger.image2Tz(1) != FINGERPRINT_OK) {
+    lcd.clear();
+    lcd.print("Try Again!");
+    delay(3000);
+    return;
+  }
+
+  lcd.clear();
+  lcd.print("Remove Finger...");
+  delay(2000);
+
+  lcd.clear();
+  lcd.print("Place Again...");
+  while (finger.getImage() != FINGERPRINT_OK);
+  if (finger.image2Tz(2) != FINGERPRINT_OK) {
+    lcd.clear();
+    lcd.print("Try Again!");
+    delay(3000);
+    return;
+  }
+
+  if (finger.createModel() != FINGERPRINT_OK) {
+    lcd.clear();
+    lcd.print("Error Creating!");
+    delay(3000);
+    return;
+  }
+
+  if (finger.storeModel(id) != FINGERPRINT_OK) {
+    lcd.clear();
+    lcd.print("Store Failed!");
+    delay(3000);
+    return;
+  }
+
+  lcd.clear();
+  lcd.print("Successfully Added!");
+  delay(3000);
+}
+
+// Xóa dấu vân tay
+void deleteFinger() {
+  lcd.clear();
+  lcd.print("Enter ID to Del:");
+  int id = 0;
+
+  inputIDFinger(&id);
+
+  // Kiểm tra ID hợp lệ
+  if (id < 0 || id > 127) {
+    lcd.clear();
+    lcd.print("Invalid ID!");
+    delay(3000);
+    return;
+  }
+
+  // Xóa dấu vân tay
+  lcd.clear();
+  lcd.print("Deleting...");
+  if (finger.deleteModel(id) == FINGERPRINT_OK) {
+    lcd.clear();
+    lcd.print("Deleted!");
+  } else {
+    lcd.clear();
+    lcd.print("Error!");
+  }
+  delay(3000);
+}
+
+// Thay đổi mã PIN
+void changePin() {
+  lcd.clear();
+  lcd.print("Enter new PIN:");
+  char newPin[5] = "";
+  boolean successInput = false;
+  inputPIN(newPin, &successInput);
+  if (successInput) {
+    strcpy(pinCode, newPin);
+    EEPROM.put(PIN_ADDRESS, pinCode);
+    lcd.clear();
+    lcd.print("PIN Changed!");
+    delay(3000);
+  }
 }
