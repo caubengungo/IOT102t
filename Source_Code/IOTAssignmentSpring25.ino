@@ -239,7 +239,7 @@ void addFinger() {
   inputIDFinger(&id);
 
    // Kiểm tra ID hợp lệ
-  if (id < 0 || id > 127) {
+  if (id < 0 || id >= 127) {
     lcd.clear();
     lcd.print("Invalid ID!");
     delay(3000);
@@ -298,7 +298,7 @@ void deleteFinger() {
   inputIDFinger(&id);
 
   // Kiểm tra ID hợp lệ
-  if (id < 0 || id > 127) {
+  if (id < 0 || id >= 127) {
     lcd.clear();
     lcd.print("Invalid ID!");
     delay(3000);
