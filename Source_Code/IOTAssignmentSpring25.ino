@@ -29,7 +29,7 @@ byte rowPins[ROWS] = {11, 10, 9, 8};
 byte colPins[COLS] = {7, 6, 5, 4};
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-// Mã PIN lưu trong EEPROM (4 ký tự)
+// Mã PIN lưu trong EEPROM, max mã PIN chỉ được 4 ký tự
 #define PIN_ADDRESS 0
 char pinCode[5] = "1234";
 
@@ -38,7 +38,7 @@ void setup() {
   lcd.init();
   lcd.backlight();
   doorLock.attach(SERVO_PIN);
-  doorLock.write(0); // Khóa cửa ban đầu
+  doorLock.write(0); //Mặc định là đóng cửa
 
   finger.begin(57600);
   if (finger.verifyPassword()) {
@@ -67,13 +67,13 @@ void loop() {
   }
 }
 
-// Chờ nhập từ keypad
+// Hàm chờ cho đến khi người dùng nhập từ 1 -> 3
 char waitForInput() {
   char key;
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '1' || key == '2' || key == '3' || key == '#') {
+      if (key == '1' || key == '2' || key == '3') {
         return key;
       }
     }
