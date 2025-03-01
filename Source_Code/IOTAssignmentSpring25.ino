@@ -33,6 +33,7 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 #define PIN_ADDRESS 0
 char pinCode[5] = "1234";
 
+//tiến hành cấu hình cho các thiết bị ngoại vi như lcd, servo,...
 void setup() {
   Serial.begin(9600);
   lcd.init();
@@ -50,6 +51,7 @@ void setup() {
   EEPROM.get(PIN_ADDRESS, pinCode);
 }
 
+//vòng loop luôn hiển thị màn hình chính
 void loop() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -80,12 +82,13 @@ char waitForInput() {
   }
 }
 
+//hàm nhận input cho mã PIN, không cần bấm * để hoàn tất, bấm # để huỷ
 void inputPIN(char input[5], boolean *successInput) {
   int i = 0;
   while (i < 4) {
     char key = keypad.getKey();
     if (key) {
-      if (!isdigit(key) && key != '#') {
+      if (!isdigit(key) && key != '#') { //nếu các ký tự khác ngoài số nhưng khác # thì là sai format của PIN
         lcd.clear();
         lcd.print("PIN must be...");
         lcd.setCursor(6,1);
@@ -93,7 +96,7 @@ void inputPIN(char input[5], boolean *successInput) {
         delay(3000);
         return;
       }
-      if (key == '#') {
+      if (key == '#') { //bấm # để huỷ quá trình và về màn hình chính
         lcd.clear();
         lcd.print("Canceled!");
         delay(3000);
@@ -108,27 +111,26 @@ void inputPIN(char input[5], boolean *successInput) {
   *successInput = true;
 }
 
+//hàm nhập ID của cảm biến vân tay, # để huỷ và * để hoàn tất, max 3 số
 void inputIDFinger(int *id) {
   int numDigits = 0;
   char key;
-
-  // Nhập ID với hiển thị số
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '#') { // Hủy quá trình nếu bấm #
+      if (key == '#') { //bấm # để huỷ quá trình và về màn hình chính
         lcd.clear();
         lcd.print("Canceled!");
         delay(2000);
         return;
       }
-      if (isdigit(key) && numDigits < 3) { // Giới hạn 3 chữ số
+      if (isdigit(key) && numDigits < 3) { // Giới hạn input là chỉ cho số và max là 3 ký tự số
         *id = *id * 10 + (key - '0');
         numDigits++;
         lcd.setCursor(0, 1);
         lcd.print(*id);
       }
-      if (key == '*') break; // Nhấn * để xác nhận ID
+      if (key == '*') break; // Bấm * để xác nhận ID
     }
   }
 }
@@ -139,20 +141,18 @@ void fingerprintLogin() {
   lcd.setCursor(0, 0);
   lcd.print("Place Finger...");
 
-  int attempts = 5;
-  while (attempts--) {
+  int attempts = 5; //cho phép thử 5 lần, nếu không đặt vân tay, hoặc failed thì mỗi lần mất 1s
+  while (attempts--) { //tổng cộng là sẽ chờ user tầm 5s để đặt tay hoặc sửa ngón khác ;v
     if (finger.getImage() == FINGERPRINT_OK) {
       if (finger.image2Tz() == FINGERPRINT_OK && finger.fingerFastSearch() == FINGERPRINT_OK) {
         lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("Access Granted!");
-
-        // Hiển thị ID ở dòng thứ 2
+ 
         lcd.setCursor(0, 1);
         lcd.print("User ID: ");
         lcd.print(finger.fingerID);
 
-        // Mở khóa cửa
         doorLock.write(90);
         delay(5000);
         doorLock.write(0);
@@ -172,7 +172,7 @@ void pinLogin() {
   lcd.print("Enter PIN:");
   char input[5] = "";
   boolean successInput = false;
-  inputPIN(input, &successInput);
+  inputPIN(input, &successInput); //gọi hàm chỉ nhập mã PIN
   
   if (successInput) {
     if (strcmp(input, pinCode) == 0) {
@@ -193,18 +193,17 @@ void pinLogin() {
 void menu() {
   lcd.clear();
   lcd.print("Enter PIN:");
-  // Nhập mã PIN trước khi vào menu
   char input[5] = "";
   boolean successInput = false;
-  inputPIN(input, &successInput);
+  inputPIN(input, &successInput); //gọi hàm chỉ nhập mã PIN
 
   if (successInput) {
-    // Kiểm tra mã PIN
+    // Kiểm tra mã PIN với mã PIN trong ÊPROM
     if (strcmp(input, pinCode) != 0) {
       lcd.clear();
       lcd.print("Access Denied!");
       delay(3000);
-      return; // Thoát khỏi menu nếu mã PIN sai
+      return; // Return về màn hình chính nếu mã PIN sai
     }
 
     // Nếu đúng, vào menu
@@ -236,7 +235,7 @@ void addFinger() {
   lcd.print("Enter ID (0-127):");
   int id = 0;
   
-  inputIDFinger(&id);
+  inputIDFinger(&id); //gọi hàm nhập ID
 
    // Kiểm tra ID hợp lệ
   if (id < 0 || id >= 127) {
@@ -324,7 +323,7 @@ void changePin() {
   lcd.print("Enter new PIN:");
   char newPin[5] = "";
   boolean successInput = false;
-  inputPIN(newPin, &successInput);
+  inputPIN(newPin, &successInput); //gọi hàm chỉ nhập mã PIN
   if (successInput) {
     strcpy(pinCode, newPin);
     EEPROM.put(PIN_ADDRESS, pinCode);
