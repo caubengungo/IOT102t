@@ -198,7 +198,7 @@ void menu() {
   inputPIN(input, &successInput); //gọi hàm chỉ nhập mã PIN
 
   if (successInput) {
-    // Kiểm tra mã PIN với mã PIN trong ÊPROM
+    // Kiểm tra mã PIN với mã PIN trong EEPROM
     if (strcmp(input, pinCode) != 0) {
       lcd.clear();
       lcd.print("Access Denied!");
