@@ -135,7 +135,7 @@ void inputIDFinger(int *id) {
   }
 }
 
-void invalidVerified() {
+void invalidVerify() {
   invalidCount++;
   if (invalidCount >= 3) {
     lcd.clear();
@@ -173,18 +173,14 @@ void fingerprintLogin() {
         lcd.setCursor(0, 1);
         lcd.print("User ID: ");
         lcd.print(finger.fingerID);
-
-        doorLock.write(90);
         delay(5000);
-        doorLock.write(0);
         return;
       }
     }
     delay(1000);
   }
   lcd.clear();
-  lcd.print("Access Denied!");
-  delay(3000);
+  invalidVerify();
 }
 
 // Đăng nhập bằng mã PIN
@@ -194,18 +190,16 @@ void pinLogin() {
   char input[5] = "";
   boolean successInput = false;
   inputPIN(input, &successInput); //gọi hàm chỉ nhập mã PIN
-  
   if (successInput) {
     if (strcmp(input, pinCode) == 0) {
       lcd.clear();
       lcd.print("Access Granted!");
-      doorLock.write(90);
+      invalidCount = 0;
+      digitalWrite(12, HIGH);
       delay(5000);
-      doorLock.write(0);
+      digitalWrite(12, LOW);
     } else {
-      lcd.clear();
-      lcd.print("Access Denied!");
-      delay(3000);
+      invalidVerify();
     }
   }
 }
@@ -220,22 +214,19 @@ void menu() {
 
   if (successInput) {
     // Kiểm tra mã PIN với mã PIN trong EEPROM
-    if (strcmp(input, pinCode) != 0) {
+    if (strcmp(input, pinCode) == 0) {
+      // Nếu đúng thì vào menu
       lcd.clear();
-      lcd.print("Access Denied!");
-      delay(3000);
-      return; // Return về màn hình chính nếu mã PIN sai
+      lcd.print("1.Modify Finger");
+      lcd.setCursor(0, 1);
+      lcd.print("2.Change PIN");
+
+      char choice = waitForInput();
+      if (choice == '1') modifyFinger();
+      else if (choice == '2') changePin();
+    } else {
+      invalidVerify();
     }
-
-    // Nếu đúng, vào menu
-    lcd.clear();
-    lcd.print("1.Modify Finger");
-    lcd.setCursor(0, 1);
-    lcd.print("2.Change PIN");
-
-    char choice = waitForInput();
-    if (choice == '1') modifyFinger();
-    else if (choice == '2') changePin();
   }
 }
 
