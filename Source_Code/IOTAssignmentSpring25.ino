@@ -37,6 +37,10 @@ void setup() {
   Serial.begin(9600);
   lcd.init();
   lcd.backlight();
+  //khai báo chân 12 output cho lock
+  pinMode(12, OUTPUT);
+  //khai báo chân 13 output cho buzzer
+  pinMode(13, OUTPUT);
   finger.begin(57600);
   if (finger.verifyPassword()) {
     Serial.println("Fingerprint sensor found!");
