@@ -8,10 +8,6 @@
 // Khai báo LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// Khai báo Servo
-Servo doorLock;
-#define SERVO_PIN 12
-
 // Khai báo cảm biến vân tay
 SoftwareSerial mySerial(2, 3);
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
@@ -33,14 +29,14 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 #define PIN_ADDRESS 0
 char pinCode[5] = "1234";
 
+//khai báo biến đếm số lần sai
+int invalidCount = 0;
+
 //tiến hành cấu hình cho các thiết bị ngoại vi như lcd, servo,...
 void setup() {
   Serial.begin(9600);
   lcd.init();
   lcd.backlight();
-  doorLock.attach(SERVO_PIN);
-  doorLock.write(0); //Mặc định là đóng cửa
-  int invalidCount = 0; //khai báo biến đếm số lần sai
   finger.begin(57600);
   if (finger.verifyPassword()) {
     Serial.println("Fingerprint sensor found!");
