@@ -75,7 +75,7 @@ char waitForInput() {
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '1' || key == '2' || key == '3') {
+      if (key == '1' || key == '2' || key == '3' || key == '3') {
         return key;
       }
     }
@@ -132,6 +132,27 @@ void inputIDFinger(int *id) {
       }
       if (key == '*') break; // Bấm * để xác nhận ID
     }
+  }
+}
+
+void invalidVerified() {
+  invalidCount++;
+  if (invalidCount >= 3) {
+    lcd.clear();
+    lcd.print("Access Denied!");
+    lcd.setCursor(0, 1);
+    lcd.print("Block in 10s!");
+    digitalWrite(13, HIGH);
+    delay(10000);
+    digitalWrite(13, LOW);
+  } else {
+    lcd.clear();
+    lcd.print("Access Denied!");
+    lcd.setCursor(0, 1);
+    lcd.print("#");
+    lcd.print(invalidCount);
+    lcd.print(" wrong time");
+    delay(3000);
   }
 }
 
