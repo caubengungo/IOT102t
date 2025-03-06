@@ -40,7 +40,7 @@ void setup() {
   lcd.backlight();
   doorLock.attach(SERVO_PIN);
   doorLock.write(0); //Mặc định là đóng cửa
-
+  int invalidCount = 0; //khai báo biến đếm số lần sai
   finger.begin(57600);
   if (finger.verifyPassword()) {
     Serial.println("Fingerprint sensor found!");
