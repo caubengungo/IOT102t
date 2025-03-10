@@ -4,9 +4,9 @@ Welcome to our **Smart Lock** project! This project is developed as part of the 
 
 ## ✨ Features
 
-🔢 PIN & Fingerprint Authentication – Unlock the door using a secure PIN code or fingerprint sensor.
+🔢 **PIN & Fingerprint Authentication** – Unlock the door using a secure PIN code or fingerprint sensor.
 
-🔊  – Audio feedback for successful and failed authentication attempts.
+🔊 **Buzzer** – Audio feedback for successful and failed authentication attempts.
 
 📟 **LCD Display** – Real-time status updates and user interaction messages.
 
