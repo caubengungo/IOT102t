@@ -173,7 +173,10 @@ void fingerprintLogin() {
         lcd.setCursor(0, 1);
         lcd.print("User ID: ");
         lcd.print(finger.fingerID);
+        invalidCount = 0;
+        digitalWrite(12, HIGH);
         delay(5000);
+        digitalWrite(12, LOW);
         return;
       }
     }
@@ -250,7 +253,7 @@ void addFinger() {
   inputIDFinger(&id); //gọi hàm nhập ID
 
    // Kiểm tra ID hợp lệ
-  if (id < 0 || id >= 127) {
+  if (id < 0 || id > 127) {
     lcd.clear();
     lcd.print("Invalid ID!");
     delay(3000);
@@ -309,7 +312,7 @@ void deleteFinger() {
   inputIDFinger(&id);
 
   // Kiểm tra ID hợp lệ
-  if (id < 0 || id >= 127) {
+  if (id < 0 || id > 127) {
     lcd.clear();
     lcd.print("Invalid ID!");
     delay(3000);
