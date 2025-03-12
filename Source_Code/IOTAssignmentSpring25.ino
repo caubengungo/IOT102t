@@ -75,7 +75,7 @@ char waitForInput() {
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '1' || key == '2' || key == '3' || key == '3') {
+      if (key == '1' || key == '2' || key == '3' || key == '3' || key == '#') {
         return key;
       }
     }
