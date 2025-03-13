@@ -9,7 +9,7 @@ const char* ssid = "FPTU_Library";
 const char* password = "12345678";
 
 // Google Apps Script URL
-const char* googleScriptURL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+const char* googleScriptURL = "https://script.google.com/macros/s/AKfycbymlY5wvY_T0JalrKFjjzTxQvnUE9__-u60V1Ub-Zl_6RpPZrIlN8t7Wwgs9IFzggOW/exec";
 
 // Fingerprint sensor setup
 SoftwareSerial mySerial(2, 3);
