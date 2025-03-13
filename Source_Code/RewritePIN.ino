@@ -10,5 +10,5 @@ void setup() {
 }
 
 void loop() {
-  // Không cần thực hiện gì trong loop
+  //Do nothing in loop
 }
