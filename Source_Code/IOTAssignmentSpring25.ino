@@ -2,8 +2,10 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
-#include <Servo.h>
 #include <EEPROM.h>
+#include <SoftwareSerial.h>
+
+SoftwareSerial espSerial(A0, A1);  // RX, TX
 
 // Khai báo LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -35,6 +37,8 @@ int invalidCount = 0;
 //tiến hành cấu hình cho các thiết bị ngoại vi như lcd, servo,...
 void setup() {
   Serial.begin(9600);
+  espSerial.begin(9600);
+  espSerial.println("AT");
   lcd.init();
   lcd.backlight();
   //khai báo chân 12 output cho lock
@@ -42,6 +46,7 @@ void setup() {
   //khai báo chân 13 output cho buzzer
   pinMode(13, OUTPUT);
   finger.begin(57600);
+  
   if (finger.verifyPassword()) {
     Serial.println("Fingerprint sensor found!");
   } else {
@@ -143,6 +148,7 @@ void invalidVerify() {
     lcd.setCursor(0, 1);
     lcd.print("Block in 10s!");
     digitalWrite(13, HIGH);
+    sendLog("Loginfailed");
     delay(10000);
     digitalWrite(13, LOW);
   } else {
@@ -152,6 +158,7 @@ void invalidVerify() {
     lcd.print("#");
     lcd.print(invalidCount);
     lcd.print(" wrong time");
+    sendLog("Loginfailed");
     delay(3000);
   }
 }
@@ -175,6 +182,7 @@ void fingerprintLogin() {
         lcd.print(finger.fingerID);
         invalidCount = 0;
         digitalWrite(12, HIGH);
+        sendLog("LoginFingerprint");
         delay(5000);
         digitalWrite(12, LOW);
         return;
@@ -199,6 +207,7 @@ void pinLogin() {
       lcd.print("Access Granted!");
       invalidCount = 0;
       digitalWrite(12, HIGH);
+      sendLog("LoginPIN");
       delay(5000);
       digitalWrite(12, LOW);
     } else {
@@ -249,7 +258,8 @@ void addFinger() {
   lcd.clear();
   lcd.print("Enter ID (0-127):");
   int id = 0;
-  
+  int attempts = 0;
+
   inputIDFinger(&id); //gọi hàm nhập ID
 
    // Kiểm tra ID hợp lệ
@@ -262,7 +272,18 @@ void addFinger() {
 
   lcd.clear();
   lcd.print("Place Finger...");
-  while (finger.getImage() != FINGERPRINT_OK);
+  while (finger.getImage() != FINGERPRINT_OK) {
+    ++attempts;
+    if (attempts == 5) {
+      lcd.clear();
+      lcd.print("Adding Failed!");
+      sendLog("Adding Failed!");
+      delay(1000);
+      return;
+    }
+    delay(1000);
+  }
+  attempts = 0;
   if (finger.image2Tz(1) != FINGERPRINT_OK) {
     lcd.clear();
     lcd.print("Try Again!");
@@ -276,7 +297,17 @@ void addFinger() {
 
   lcd.clear();
   lcd.print("Place Again...");
-  while (finger.getImage() != FINGERPRINT_OK);
+  while (finger.getImage() != FINGERPRINT_OK) {
+    ++attempts;
+    if (attempts == 5) {
+      lcd.clear();
+      lcd.print("Adding Failed!");
+      sendLog("Adding Failed!");
+      delay(1000);
+      return;
+    }
+    delay(1000);
+  }
   if (finger.image2Tz(2) != FINGERPRINT_OK) {
     lcd.clear();
     lcd.print("Try Again!");
@@ -300,6 +331,7 @@ void addFinger() {
 
   lcd.clear();
   lcd.print("Successfully Added!");
+  sendLog("Successfully Added!");
   delay(3000);
 }
 
@@ -325,6 +357,7 @@ void deleteFinger() {
   if (finger.deleteModel(id) == FINGERPRINT_OK) {
     lcd.clear();
     lcd.print("Deleted!");
+    sendLog("Deleted!");
   } else {
     lcd.clear();
     lcd.print("Error!");
@@ -344,6 +377,23 @@ void changePin() {
     EEPROM.put(PIN_ADDRESS, pinCode);
     lcd.clear();
     lcd.print("PIN Changed!");
+    sendLog("PIN Changed!");
     delay(3000);
   }
+}
+
+void sendLog(String event) {
+  // mySerial.end();
+  espSerial.listen();
+  delay(1000);
+  // String logData = "event=" + event + "&method=" + method;
+  // String logData = "event=" + event + "&method=" + method.replace(" ", "%20");
+  // String logData = "event=" + event + "%26" +"method=" + method;
+  // String logData = String(currentTime) + "\t" + event + "\t" + method;
+  // String logData = "event=" + event  + "&method=" + method;
+  String logData = "event=" + event;
+  espSerial.println(logData); // Gửi log qua ESP8266
+  Serial.println(logData);
+
+  // mySerial.begin(57600);
 }
