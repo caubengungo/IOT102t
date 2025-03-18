@@ -1,94 +1,66 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
-#include <Adafruit_Fingerprint.h>
-#include <WiFiClientSecureBearSSL.h>
-#include <ArduinoJson.h>
+  #include <ESP8266WiFi.h>
+  #include <ESP8266HTTPClient.h>
 
-// WiFi credentials
-const char* ssid = "FPTU_Library";
-const char* password = "12345678";
+  const char* ssid = "Chipichipichapachapa"; 
+  const char* password = "chuachacdafreedau"; 
+  const char* scriptURL = "https://script.google.com/macros/s/AKfycbwlMLD89gPYUupO3-1PDlxnVNEhGuJVV6-GZv9taew0zLpGSGbfDY-xknrcD-FVBe3_5Q/exec";
 
-// Google Apps Script URL
-const char* googleScriptURL = "https://script.google.com/macros/s/AKfycbymlY5wvY_T0JalrKFjjzTxQvnUE9__-u60V1Ub-Zl_6RpPZrIlN8t7Wwgs9IFzggOW/exec";
-
-// Fingerprint sensor setup
-SoftwareSerial mySerial(2, 3);
-Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
-
-void setup() {
-    Serial.begin(115200);
+  void setup() {
+    Serial.begin(9600);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
-        delay(1000);
-        Serial.println("Connecting to WiFi...");
+      delay(1000);
+      Serial.println("Connecting to WiFi...");
     }
     Serial.println("Connected to WiFi");
+  }
 
-    finger.begin(57600);
-    if (finger.verifyPassword()) {
-        Serial.println("Fingerprint sensor detected");
-    } else {
-        Serial.println("Fingerprint sensor not detected");
-        logFingerprintToSheetsAndDocs("", "Error", "Fingerprint sensor not detected");
-        while (1);
+  void loop() {
+    if (Serial.available()) {
+      String logData = Serial.readStringUntil('\n');
+      sendToGoogleSheets(logData);
     }
-}
+  }
 
-void loop() {
-    Serial.println("Waiting for valid fingerprint...");
-    int result = finger.getImage();
-    if (result == FINGERPRINT_OK) {
-        if (finger.image2Tz(1) == FINGERPRINT_OK) {
-            if (finger.createModel() == FINGERPRINT_OK) {
-                Serial.println("Fingerprint template created.");
-                
-                // Convert fingerprint to HEX string
-                String fingerprintTemplate = getFingerprintTemplate();
-                logFingerprintToSheetsAndDocs(fingerprintTemplate, "Success", "Fingerprint scanned and stored successfully");
-            } else {
-                Serial.println("Failed to create fingerprint template");
-                logFingerprintToSheetsAndDocs("", "Error", "Failed to create fingerprint template");
-            }
-        } else {
-            Serial.println("Failed to convert image to template");
-            logFingerprintToSheetsAndDocs("", "Error", "Failed to convert fingerprint image");
-        }
-    } else if (result == FINGERPRINT_NOFINGER) {
-        Serial.println("No finger detected");
-    } else {
-        Serial.println("Fingerprint read error");
-        logFingerprintToSheetsAndDocs("", "Error", "Fingerprint sensor read error");
-    }
-    delay(5000);
-}
-
-String getFingerprintTemplate() {
-    uint8_t templateBuffer[512];
-    if (finger.getTemplate(1, templateBuffer) == FINGERPRINT_OK) {
-        String templateStr = "";
-        for (int i = 0; i < 512; i++) {
-            templateStr += String(templateBuffer[i], HEX);
-        }
-        return templateStr;
-    }
-    return "";
-}
-
-void logFingerprintToSheetsAndDocs(String fingerprintTemplate, String status, String message) {
+  void sendToGoogleSheets(String data) {
     if (WiFi.status() == WL_CONNECTED) {
-        HTTPClient http;
-        WiFiClientSecure client;
-        client.setInsecure();
-        
-        http.begin(client, googleScriptURL);
-        http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-        
-        String postData = "fingerprint_template=" + fingerprintTemplate + "&status=" + status + "&message=" + message;
-        int httpResponseCode = http.POST(postData);
-        
-        Serial.print("Google API response: ");
-        Serial.println(httpResponseCode);
-        
+      WiFiClientSecure client;
+      HTTPClient http;
+
+      String encodedData = data;
+      encodedData.replace(" ", "%20");  // Mã hóa khoảng trắng
+      encodedData.replace("&", "%26");  // Mã hóa dấu &
+
+      String url = String(scriptURL) + "?" + encodedData;
+      http.begin(client, url);
+      client.setInsecure(); // Bỏ qua kiểm tra SSL (nếu cần)
+      // String url = String(scriptURL) + "?" + data;
+      Serial.println("Requesting URL: " + url);
+      
+      Serial.print("Free heap memory: ");
+      Serial.println(ESP.getFreeHeap());
+      http.begin(client, url);
+      // http.addHeader("Connection", "close"); // Fix lỗi HTTP/1.0
+      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+      int httpCode = http.GET();
+
+          // Nếu bị redirect (302), lấy URL mới và gửi lại
+      if (httpCode == HTTP_CODE_FOUND) { // 302 Redirect
+        String newURL = http.getLocation();
+        Serial.println("Redirect to: " + newURL);
         http.end();
+        
+        http.begin(client, newURL);
+        httpCode = http.GET();
+      }
+
+      Serial.print("HTTP Response Code: ");
+      Serial.println(httpCode);
+      if (httpCode == HTTP_CODE_OK) {
+        Serial.println("Data sent successfully");
+      } else {
+        Serial.println("Error sending data");
+      }
+      http.end();
     }
-}
+  }
