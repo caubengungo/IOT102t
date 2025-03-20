@@ -7,10 +7,10 @@
 
 SoftwareSerial espSerial(A0, A1);  // RX, TX
 
-// Define the LCD
+// Define LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// Define the fingerprint sensor
+// Define fingerprint
 SoftwareSerial mySerial(2, 3);
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
@@ -27,23 +27,23 @@ byte rowPins[ROWS] = {11, 10, 9, 8};
 byte colPins[COLS] = {7, 6, 5, 4};
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-// Save the PIN in EEPROM, max 4 chars 
+// PIN stored in EEPROM, maximum is 4 chars
 #define PIN_ADDRESS 0
 char pinCode[5] = "1234";
 
-// Define the invalid count
+// Define wrong input times count
 int invalidCount = 0;
 
-// Configure for LCD
+//Configuration for lcd, servo,...
 void setup() {
   Serial.begin(9600);
   espSerial.begin(9600);
   espSerial.println("AT");
   lcd.init();
   lcd.backlight();
-  //Define output pin for Lock
+  // define output pin for lock
   pinMode(12, OUTPUT);
-  //Define output pin for buzzer
+  //define output pin for buzzer
   pinMode(13, OUTPUT);
   finger.begin(57600);
   
@@ -56,7 +56,7 @@ void setup() {
   EEPROM.get(PIN_ADDRESS, pinCode);
 }
 
-//Loop that the main screen  
+//Starting loops
 void loop() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -74,26 +74,26 @@ void loop() {
   }
 }
 
-// Wait for input 1 -> 3
+// function wait until user type 1 -> 3 or #
 char waitForInput() {
   char key;
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '1' || key == '2' || key == '3' || key == '#') {
+      if (key == '1' || key == '2' || key == '3' || key == '3' || key == '#') {
         return key;
       }
     }
   }
 }
 
-// Recv the input for PIN, * for confirm, # for decline
+// function for user input PIN, no need press * to complete, press # to cancel
 void inputPIN(char input[5], boolean *successInput) {
   int i = 0;
   while (i < 4) {
     char key = keypad.getKey();
     if (key) {
-      if (!isdigit(key) && key != '#') { // if the input not # --> incorrect format
+      if (!isdigit(key) && key != '#') { //other chars are not numbers except # will print wrong format
         lcd.clear();
         lcd.print("PIN must be...");
         lcd.setCursor(6,1);
@@ -101,7 +101,7 @@ void inputPIN(char input[5], boolean *successInput) {
         delay(3000);
         return;
       }
-      if (key == '#') { // # to cancel and go back to the main screen 
+      if (key == '#') { //press # to cancel
         lcd.clear();
         lcd.print("Canceled!");
         delay(3000);
@@ -116,26 +116,26 @@ void inputPIN(char input[5], boolean *successInput) {
   *successInput = true;
 }
 
-//Recv the input for fingerprint ID, * for confirm, # for decline, max 3 numbers
+//function for user to enter fingerprint ID, # to cancel and * to confirm, max 3 digits
 void inputIDFinger(int *id) {
   int numDigits = 0;
   char key;
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '#') { // # to cancel and go back to main screen
+      if (key == '#') { //press # to cancel
         lcd.clear();
         lcd.print("Canceled!");
         delay(2000);
         return;
       }
-      if (isdigit(key) && numDigits < 3) { //limit the input only 3 digits
+      if (isdigit(key) && numDigits < 3) { // input limitation is just for numbers and maximum is 3 digits
         *id = *id * 10 + (key - '0');
         numDigits++;
         lcd.setCursor(0, 1);
         lcd.print(*id);
       }
-      if (key == '*') break; // * to confirm
+      if (key == '*') break; // press * to confirm
     }
   }
 }
@@ -163,14 +163,14 @@ void invalidVerify() {
   }
 }
 
-// login with fingerprint
+// Fingerprint login
 void fingerprintLogin() {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Place Finger...");
 
-  int attempts = 5; // can try 5 times, each time 1 second
-  while (attempts--) { // must for 5 seconds in total or have to use another finger
+  int attempts = 5; //5 times try, each time 1s
+  while (attempts--) { //total 5s, >5s return to main screen
     if (finger.getImage() == FINGERPRINT_OK) {
       if (finger.image2Tz() == FINGERPRINT_OK && finger.fingerFastSearch() == FINGERPRINT_OK) {
         lcd.clear();
@@ -194,13 +194,13 @@ void fingerprintLogin() {
   invalidVerify();
 }
 
-// log in with PIN
+// PIN login
 void pinLogin() {
   lcd.clear();
   lcd.print("Enter PIN:");
   char input[5] = "";
   boolean successInput = false;
-  inputPIN(input, &successInput); // call the func that the input mus PIN only
+  inputPIN(input, &successInput); //call input PIN function
   if (successInput) {
     if (strcmp(input, pinCode) == 0) {
       lcd.clear();
@@ -216,18 +216,18 @@ void pinLogin() {
   }
 }
 
-// Menu 
+// Menu quản lý
 void menu() {
   lcd.clear();
   lcd.print("Enter PIN:");
   char input[5] = "";
   boolean successInput = false;
-  inputPIN(input, &successInput); //call PIN login func
+  inputPIN(input, &successInput); //call input PIN function
 
   if (successInput) {
-    // check the PIN with the one that have already stored  in  EEPROM
+    // check the enterd PIN with the PIN in EEPROM
     if (strcmp(input, pinCode) == 0) {
-      // if correct --> Menu
+      // if they are the same, allow to go inside
       lcd.clear();
       lcd.print("1.Modify Finger");
       lcd.setCursor(0, 1);
@@ -242,7 +242,7 @@ void menu() {
   }
 }
 
-// add and delete fingerprints
+// add and del finger choose screen
 void modifyFinger() {
   lcd.clear();
   lcd.print("1.Add finger");
@@ -253,16 +253,16 @@ void modifyFinger() {
   else if (choice == '2') deleteFinger();
 }
 
-// add Fingerprint
+// add fingerprint
 void addFinger() {
   lcd.clear();
   lcd.print("Enter ID (0-127):");
   int id = 0;
   int attempts = 0;
 
-  inputIDFinger(&id); // call ID funcs
+  inputIDFinger(&id); //call input PIN function
 
-   // validate the ID
+   // validate ID
   if (id < 0 || id > 127) {
     lcd.clear();
     lcd.print("Invalid ID!");
@@ -335,7 +335,7 @@ void addFinger() {
   delay(3000);
 }
 
-// Del Finger
+// del fingerprint
 void deleteFinger() {
   lcd.clear();
   lcd.print("Enter ID to Del:");
@@ -343,7 +343,7 @@ void deleteFinger() {
 
   inputIDFinger(&id);
 
-  // Validate 
+  // validate ID
   if (id < 0 || id > 127) {
     lcd.clear();
     lcd.print("Invalid ID!");
@@ -351,7 +351,7 @@ void deleteFinger() {
     return;
   }
 
-  // Del finger
+  // del fingerprint
   lcd.clear();
   lcd.print("Deleting...");
   if (finger.deleteModel(id) == FINGERPRINT_OK) {
@@ -365,27 +365,35 @@ void deleteFinger() {
   delay(3000);
 }
 
-// Change PIN
+// change PIN
 void changePin() {
   lcd.clear();
   lcd.print("Enter new PIN:");
   char newPin[5] = "";
   boolean successInput = false;
-  inputPIN(newPin, &successInput); 
+  inputPIN(newPin, &successInput); //call input pin function
   if (successInput) {
     strcpy(pinCode, newPin);
     EEPROM.put(PIN_ADDRESS, pinCode);
     lcd.clear();
     lcd.print("PIN Changed!");
-    sendLog("PIN Changed!", "PIN");
+    sendLog("PIN Changed!");
     delay(3000);
   }
 }
 
 void sendLog(String event) {
+  // mySerial.end();
   espSerial.listen();
   delay(1000);
+  // String logData = "event=" + event + "&method=" + method;
+  // String logData = "event=" + event + "&method=" + method.replace(" ", "%20");
+  // String logData = "event=" + event + "%26" +"method=" + method;
+  // String logData = String(currentTime) + "\t" + event + "\t" + method;
+  // String logData = "?event=" + event  + "&method=" + method;
   String logData = "?event=" + event;
-  espSerial.println(logData); // send log to ESP8266 to send to spreadsheet
+  espSerial.println(logData); // send log through ESP8266
   mySerial.listen();
+
+  // mySerial.begin(57600);
 }
