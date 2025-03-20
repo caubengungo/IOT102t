@@ -1,9 +1,9 @@
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
 
-  const char* ssid = "Chipichipichapachapa"; 
-  const char* password = "chuachacdafreedau"; 
-  const char* scriptURL = "https://script.google.com/macros/s/AKfycbwlMLD89gPYUupO3-1PDlxnVNEhGuJVV6-GZv9taew0zLpGSGbfDY-xknrcD-FVBe3_5Q/exec";
+  const char* ssid = "TQT"; 
+  const char* password = "calculus"; 
+  const char* scriptURL = "https://script.google.com/macros/s/AKfycbzzpflQzsa1GYSUMcKCNhVHdC6Z4Lo9W2fqmthB1ZcrBdyezoN6Gh2f4O9e0seGCCvyAg/exec";
 
   void setup() {
     Serial.begin(9600);
@@ -31,21 +31,19 @@
       encodedData.replace(" ", "%20");  // Mã hóa khoảng trắng
       encodedData.replace("&", "%26");  // Mã hóa dấu &
 
-      String url = String(scriptURL) + "?" + encodedData;
+      String url = String(scriptURL) + encodedData;
       http.begin(client, url);
       client.setInsecure(); // Bỏ qua kiểm tra SSL (nếu cần)
-      // String url = String(scriptURL) + "?" + data;
       Serial.println("Requesting URL: " + url);
       
       Serial.print("Free heap memory: ");
       Serial.println(ESP.getFreeHeap());
       http.begin(client, url);
-      // http.addHeader("Connection", "close"); // Fix lỗi HTTP/1.0
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       int httpCode = http.GET();
 
-          // Nếu bị redirect (302), lấy URL mới và gửi lại
-      if (httpCode == HTTP_CODE_FOUND) { // 302 Redirect
+      // Nếu bị redirect (302), lấy URL mới và gửi lại
+      if (httpCode == HTTP_CODE_FOUND) {
         String newURL = http.getLocation();
         Serial.println("Redirect to: " + newURL);
         http.end();
