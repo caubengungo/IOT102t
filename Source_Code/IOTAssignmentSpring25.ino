@@ -148,7 +148,7 @@ void invalidVerify() {
     lcd.setCursor(0, 1);
     lcd.print("Block in 10s!");
     digitalWrite(13, HIGH);
-    sendLog("Loginfailed");
+    sendLog("Login failed, try again in 10s");
     delay(10000);
     digitalWrite(13, LOW);
   } else {
@@ -158,7 +158,7 @@ void invalidVerify() {
     lcd.print("#");
     lcd.print(invalidCount);
     lcd.print(" wrong time");
-    sendLog("Loginfailed");
+    sendLog("Login failed, try again in 3s");
     delay(3000);
   }
 }
@@ -182,7 +182,7 @@ void fingerprintLogin() {
         lcd.print(finger.fingerID);
         invalidCount = 0;
         digitalWrite(12, HIGH);
-        sendLog("LoginFingerprint");
+        sendLog("Login fingerprint, id: " + String(finger.fingerID));
         delay(5000);
         digitalWrite(12, LOW);
         return;
@@ -207,7 +207,7 @@ void pinLogin() {
       lcd.print("Access Granted!");
       invalidCount = 0;
       digitalWrite(12, HIGH);
-      sendLog("LoginPIN");
+      sendLog("Login PIN");
       delay(5000);
       digitalWrite(12, LOW);
     } else {
@@ -277,7 +277,7 @@ void addFinger() {
     if (attempts == 5) {
       lcd.clear();
       lcd.print("Adding Failed!");
-      sendLog("Adding Failed!");
+      sendLog("Adding new fingerprint failed!");
       delay(1000);
       return;
     }
@@ -302,7 +302,7 @@ void addFinger() {
     if (attempts == 5) {
       lcd.clear();
       lcd.print("Adding Failed!");
-      sendLog("Adding Failed!");
+      sendLog("Adding new fingerprint failed!");
       delay(1000);
       return;
     }
@@ -331,7 +331,7 @@ void addFinger() {
 
   lcd.clear();
   lcd.print("Successfully Added!");
-  sendLog("Successfully Added!");
+  sendLog("Successfully add new fingerprint!");
   delay(3000);
 }
 
@@ -357,7 +357,7 @@ void deleteFinger() {
   if (finger.deleteModel(id) == FINGERPRINT_OK) {
     lcd.clear();
     lcd.print("Deleted!");
-    sendLog("Deleted!");
+    sendLog("Deleted! Finger no: " + String(finger.fingerID));
   } else {
     lcd.clear();
     lcd.print("Error!");
@@ -377,23 +377,15 @@ void changePin() {
     EEPROM.put(PIN_ADDRESS, pinCode);
     lcd.clear();
     lcd.print("PIN Changed!");
-    sendLog("PIN Changed!");
+    sendLog("PIN Changed!", "PIN");
     delay(3000);
   }
 }
 
 void sendLog(String event) {
-  // mySerial.end();
   espSerial.listen();
   delay(1000);
-  // String logData = "event=" + event + "&method=" + method;
-  // String logData = "event=" + event + "&method=" + method.replace(" ", "%20");
-  // String logData = "event=" + event + "%26" +"method=" + method;
-  // String logData = String(currentTime) + "\t" + event + "\t" + method;
-  // String logData = "event=" + event  + "&method=" + method;
-  String logData = "event=" + event;
+  String logData = "?event=" + event;
   espSerial.println(logData); // Gửi log qua ESP8266
-  Serial.println(logData);
-
-  // mySerial.begin(57600);
+  mySerial.listen();
 }
