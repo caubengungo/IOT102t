@@ -1,9 +1,9 @@
-  #include <ESP8266WiFi.h>
+#include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
 
-  const char* ssid = "TQT"; 
-  const char* password = "calculus"; 
-  const char* scriptURL = "https://script.google.com/macros/s/AKfycbzzpflQzsa1GYSUMcKCNhVHdC6Z4Lo9W2fqmthB1ZcrBdyezoN6Gh2f4O9e0seGCCvyAg/exec";
+  const char* ssid = "Chipichipichapachapa"; 
+  const char* password = "chuachacdafreedau"; 
+  const char* scriptURL = "https://script.google.com/macros/s/AKfycbzvveHuWtFZFu-YjR1tQ4W4KsWogfneNfX0tsqF8fkc98yb8y2bYzCR-RlBzxugU8Pfhw/exec";
 
   void setup() {
     Serial.begin(9600);
@@ -28,22 +28,25 @@
       HTTPClient http;
 
       String encodedData = data;
-      encodedData.replace(" ", "%20");  // Encode the space
-      encodedData.replace("&", "%26");  // Encode the symbol "&"
+      encodedData.replace(" ", "%20");  // Encode space character
+      encodedData.replace("&", "%26");  // Encode &
 
+      // String url = String(scriptURL) + "?" + encodedData;
       String url = String(scriptURL) + encodedData;
       http.begin(client, url);
-      client.setInsecure(); // Skip the SSL testing
+      client.setInsecure(); // Skip SSL testing
+      // String url = String(scriptURL) + "?" + data;
       Serial.println("Requesting URL: " + url);
       
       Serial.print("Free heap memory: ");
       Serial.println(ESP.getFreeHeap());
       http.begin(client, url);
+      // http.addHeader("Connection", "close"); // Fix error HTTP/1.0
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       int httpCode = http.GET();
 
-      // If it get Redirected, get the new URL then send again
-      if (httpCode == HTTP_CODE_FOUND) {
+          // if get redirect (302), get new URL and send again
+      if (httpCode == HTTP_CODE_FOUND) { // 302 Redirect
         String newURL = http.getLocation();
         Serial.println("Redirect to: " + newURL);
         http.end();
