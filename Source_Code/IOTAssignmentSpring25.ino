@@ -7,14 +7,14 @@
 
 SoftwareSerial espSerial(A0, A1);  // RX, TX
 
-// Khai báo LCD
+// Define the LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// Khai báo cảm biến vân tay
+// Define the fingerprint sensor
 SoftwareSerial mySerial(2, 3);
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
-// Khai báo Keypad
+// Define Keypad
 const byte ROWS = 4;
 const byte COLS = 4;
 char keys[ROWS][COLS] = {
@@ -27,23 +27,23 @@ byte rowPins[ROWS] = {11, 10, 9, 8};
 byte colPins[COLS] = {7, 6, 5, 4};
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-// Mã PIN lưu trong EEPROM, max mã PIN chỉ được 4 ký tự
+// Save the PIN in EEPROM, max 4 chars 
 #define PIN_ADDRESS 0
 char pinCode[5] = "1234";
 
-//khai báo biến đếm số lần sai
+// Define the invalid count
 int invalidCount = 0;
 
-//tiến hành cấu hình cho các thiết bị ngoại vi như lcd, servo,...
+// Configure for LCD
 void setup() {
   Serial.begin(9600);
   espSerial.begin(9600);
   espSerial.println("AT");
   lcd.init();
   lcd.backlight();
-  //khai báo chân 12 output cho lock
+  //Define output pin for Lock
   pinMode(12, OUTPUT);
-  //khai báo chân 13 output cho buzzer
+  //Define output pin for buzzer
   pinMode(13, OUTPUT);
   finger.begin(57600);
   
@@ -56,7 +56,7 @@ void setup() {
   EEPROM.get(PIN_ADDRESS, pinCode);
 }
 
-//vòng loop luôn hiển thị màn hình chính
+//Loop that the main screen  
 void loop() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -74,26 +74,26 @@ void loop() {
   }
 }
 
-// Hàm chờ cho đến khi người dùng nhập từ 1 -> 3
+// Wait for input 1 -> 3
 char waitForInput() {
   char key;
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '1' || key == '2' || key == '3' || key == '3' || key == '#') {
+      if (key == '1' || key == '2' || key == '3' || key == '#') {
         return key;
       }
     }
   }
 }
 
-//hàm nhận input cho mã PIN, không cần bấm * để hoàn tất, bấm # để huỷ
+// Recv the input for PIN, * for confirm, # for decline
 void inputPIN(char input[5], boolean *successInput) {
   int i = 0;
   while (i < 4) {
     char key = keypad.getKey();
     if (key) {
-      if (!isdigit(key) && key != '#') { //nếu các ký tự khác ngoài số nhưng khác # thì là sai format của PIN
+      if (!isdigit(key) && key != '#') { // if the input not # --> incorrect format
         lcd.clear();
         lcd.print("PIN must be...");
         lcd.setCursor(6,1);
@@ -101,7 +101,7 @@ void inputPIN(char input[5], boolean *successInput) {
         delay(3000);
         return;
       }
-      if (key == '#') { //bấm # để huỷ quá trình và về màn hình chính
+      if (key == '#') { // # to cancel and go back to the main screen 
         lcd.clear();
         lcd.print("Canceled!");
         delay(3000);
@@ -116,26 +116,26 @@ void inputPIN(char input[5], boolean *successInput) {
   *successInput = true;
 }
 
-//hàm nhập ID của cảm biến vân tay, # để huỷ và * để hoàn tất, max 3 số
+//Recv the input for fingerprint ID, * for confirm, # for decline, max 3 numbers
 void inputIDFinger(int *id) {
   int numDigits = 0;
   char key;
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '#') { //bấm # để huỷ quá trình và về màn hình chính
+      if (key == '#') { // # to cancel and go back to main screen
         lcd.clear();
         lcd.print("Canceled!");
         delay(2000);
         return;
       }
-      if (isdigit(key) && numDigits < 3) { // Giới hạn input là chỉ cho số và max là 3 ký tự số
+      if (isdigit(key) && numDigits < 3) { //limit the input only 3 digits
         *id = *id * 10 + (key - '0');
         numDigits++;
         lcd.setCursor(0, 1);
         lcd.print(*id);
       }
-      if (key == '*') break; // Bấm * để xác nhận ID
+      if (key == '*') break; // * to confirm
     }
   }
 }
@@ -163,14 +163,14 @@ void invalidVerify() {
   }
 }
 
-// Đăng nhập bằng vân tay
+// login with fingerprint
 void fingerprintLogin() {
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Place Finger...");
 
-  int attempts = 5; //cho phép thử 5 lần, nếu không đặt vân tay, hoặc failed thì mỗi lần mất 1s
-  while (attempts--) { //tổng cộng là sẽ chờ user tầm 5s để đặt tay hoặc sửa ngón khác ;v
+  int attempts = 5; // can try 5 times, each time 1 second
+  while (attempts--) { // must for 5 seconds in total or have to use another finger
     if (finger.getImage() == FINGERPRINT_OK) {
       if (finger.image2Tz() == FINGERPRINT_OK && finger.fingerFastSearch() == FINGERPRINT_OK) {
         lcd.clear();
@@ -194,13 +194,13 @@ void fingerprintLogin() {
   invalidVerify();
 }
 
-// Đăng nhập bằng mã PIN
+// log in with PIN
 void pinLogin() {
   lcd.clear();
   lcd.print("Enter PIN:");
   char input[5] = "";
   boolean successInput = false;
-  inputPIN(input, &successInput); //gọi hàm chỉ nhập mã PIN
+  inputPIN(input, &successInput); // call the func that the input mus PIN only
   if (successInput) {
     if (strcmp(input, pinCode) == 0) {
       lcd.clear();
@@ -216,18 +216,18 @@ void pinLogin() {
   }
 }
 
-// Menu quản lý
+// Menu 
 void menu() {
   lcd.clear();
   lcd.print("Enter PIN:");
   char input[5] = "";
   boolean successInput = false;
-  inputPIN(input, &successInput); //gọi hàm chỉ nhập mã PIN
+  inputPIN(input, &successInput); //call PIN login func
 
   if (successInput) {
-    // Kiểm tra mã PIN với mã PIN trong EEPROM
+    // check the PIN with the one that have already stored  in  EEPROM
     if (strcmp(input, pinCode) == 0) {
-      // Nếu đúng thì vào menu
+      // if correct --> Menu
       lcd.clear();
       lcd.print("1.Modify Finger");
       lcd.setCursor(0, 1);
@@ -242,7 +242,7 @@ void menu() {
   }
 }
 
-// Thêm hoặc xóa vân tay
+// add and delete fingerprints
 void modifyFinger() {
   lcd.clear();
   lcd.print("1.Add finger");
@@ -253,16 +253,16 @@ void modifyFinger() {
   else if (choice == '2') deleteFinger();
 }
 
-// Thêm dấu vân tay
+// add Fingerprint
 void addFinger() {
   lcd.clear();
   lcd.print("Enter ID (0-127):");
   int id = 0;
   int attempts = 0;
 
-  inputIDFinger(&id); //gọi hàm nhập ID
+  inputIDFinger(&id); // call ID funcs
 
-   // Kiểm tra ID hợp lệ
+   // validate the ID
   if (id < 0 || id > 127) {
     lcd.clear();
     lcd.print("Invalid ID!");
@@ -335,7 +335,7 @@ void addFinger() {
   delay(3000);
 }
 
-// Xóa dấu vân tay
+// Del Finger
 void deleteFinger() {
   lcd.clear();
   lcd.print("Enter ID to Del:");
@@ -343,7 +343,7 @@ void deleteFinger() {
 
   inputIDFinger(&id);
 
-  // Kiểm tra ID hợp lệ
+  // Validate 
   if (id < 0 || id > 127) {
     lcd.clear();
     lcd.print("Invalid ID!");
@@ -351,7 +351,7 @@ void deleteFinger() {
     return;
   }
 
-  // Xóa dấu vân tay
+  // Del finger
   lcd.clear();
   lcd.print("Deleting...");
   if (finger.deleteModel(id) == FINGERPRINT_OK) {
@@ -365,13 +365,13 @@ void deleteFinger() {
   delay(3000);
 }
 
-// Thay đổi mã PIN
+// Change PIN
 void changePin() {
   lcd.clear();
   lcd.print("Enter new PIN:");
   char newPin[5] = "";
   boolean successInput = false;
-  inputPIN(newPin, &successInput); //gọi hàm chỉ nhập mã PIN
+  inputPIN(newPin, &successInput); 
   if (successInput) {
     strcpy(pinCode, newPin);
     EEPROM.put(PIN_ADDRESS, pinCode);
@@ -386,6 +386,6 @@ void sendLog(String event) {
   espSerial.listen();
   delay(1000);
   String logData = "?event=" + event;
-  espSerial.println(logData); // Gửi log qua ESP8266
+  espSerial.println(logData); // send log to ESP8266 to send to spreadsheet
   mySerial.listen();
 }
