@@ -28,12 +28,12 @@
       HTTPClient http;
 
       String encodedData = data;
-      encodedData.replace(" ", "%20");  // Mã hóa khoảng trắng
-      encodedData.replace("&", "%26");  // Mã hóa dấu &
+      encodedData.replace(" ", "%20");  // Encode the space
+      encodedData.replace("&", "%26");  // Encode the symbol "&"
 
       String url = String(scriptURL) + encodedData;
       http.begin(client, url);
-      client.setInsecure(); // Bỏ qua kiểm tra SSL (nếu cần)
+      client.setInsecure(); // Skip the SSL testing
       Serial.println("Requesting URL: " + url);
       
       Serial.print("Free heap memory: ");
@@ -42,7 +42,7 @@
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       int httpCode = http.GET();
 
-      // Nếu bị redirect (302), lấy URL mới và gửi lại
+      // If it get Redirected, get the new URL then send again
       if (httpCode == HTTP_CODE_FOUND) {
         String newURL = http.getLocation();
         Serial.println("Redirect to: " + newURL);
