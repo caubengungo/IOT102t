@@ -222,7 +222,7 @@ void pinLogin() {
   }
 }
 
-// Menu quản lý
+// Menu
 void menu() {
   lcd.clear();
   lcd.print("Enter PIN:");
