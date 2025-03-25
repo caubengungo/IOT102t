@@ -123,7 +123,7 @@ void inputPIN(char input[5], boolean *successInput) {
 }
 
 //function for user to enter fingerprint ID, # to cancel and * to confirm, max 3 digits
-void inputIDFinger(int *id) {
+void inputIDFinger(int *id, boolean *successInput) {
   int numDigits = 0;
   char key;
   while (1) {
@@ -152,6 +152,7 @@ void inputIDFinger(int *id) {
       if (key == '*') break; // press * to confirm
     }
   }
+  *successInput = true;
 }
 
 void invalidVerify() {
@@ -214,7 +215,9 @@ void pinLogin() {
   lcd.print("Enter PIN:");
   char input[5] = "";
   boolean successInput = false;
+  
   inputPIN(input, &successInput); //call input PIN function
+  
   if (successInput) {
     if (strcmp(input, pinCode) == 0) {
       lcd.clear();
@@ -291,8 +294,9 @@ void addFinger() {
   lcd.print("Enter ID (0-127):");
   int id = 0;
   int attempts = 0;
-
-  inputIDFinger(&id); //call input PIN function
+  boolean successInput = false;
+  
+  inputIDFinger(&id, &successInput); //call input PIN function
 
    // validate ID
   if (id < 0 || id > 127) {
@@ -302,69 +306,71 @@ void addFinger() {
     return;
   }
 
-  lcd.clear();
-  lcd.print("Place Finger...");
-  while (finger.getImage() != FINGERPRINT_OK) {
-    ++attempts;
-    if (attempts == 5) {
-      lcd.clear();
-      lcd.print("Adding Failed!");
-      sendLog("Adding new fingerprint failed!");
+  if (successInput) {
+    lcd.clear();
+    lcd.print("Place Finger...");
+    while (finger.getImage() != FINGERPRINT_OK) {
+      ++attempts;
+      if (attempts == 5) {
+        lcd.clear();
+        lcd.print("Adding Failed!");
+        sendLog("Adding new fingerprint failed!");
+        delay(1000);
+        return;
+      }
       delay(1000);
+    }
+    attempts = 0;
+    if (finger.image2Tz(1) != FINGERPRINT_OK) {
+      lcd.clear();
+      lcd.print("Try Again!");
+      delay(3000);
       return;
     }
-    delay(1000);
-  }
-  attempts = 0;
-  if (finger.image2Tz(1) != FINGERPRINT_OK) {
+  
     lcd.clear();
-    lcd.print("Try Again!");
-    delay(3000);
-    return;
-  }
-
-  lcd.clear();
-  lcd.print("Remove Finger...");
-  delay(2000);
-
-  lcd.clear();
-  lcd.print("Place Again...");
-  while (finger.getImage() != FINGERPRINT_OK) {
-    ++attempts;
-    if (attempts == 5) {
-      lcd.clear();
-      lcd.print("Adding Failed!");
-      sendLog("Adding new fingerprint failed!");
+    lcd.print("Remove Finger...");
+    delay(2000);
+  
+    lcd.clear();
+    lcd.print("Place Again...");
+    while (finger.getImage() != FINGERPRINT_OK) {
+      ++attempts;
+      if (attempts == 5) {
+        lcd.clear();
+        lcd.print("Adding Failed!");
+        sendLog("Adding new fingerprint failed!");
+        delay(1000);
+        return;
+      }
       delay(1000);
+    }
+    if (finger.image2Tz(2) != FINGERPRINT_OK) {
+      lcd.clear();
+      lcd.print("Try Again!");
+      delay(3000);
       return;
     }
-    delay(1000);
-  }
-  if (finger.image2Tz(2) != FINGERPRINT_OK) {
+  
+    if (finger.createModel() != FINGERPRINT_OK) {
+      lcd.clear();
+      lcd.print("Error Creating!");
+      delay(3000);
+      return;
+    }
+  
+    if (finger.storeModel(id) != FINGERPRINT_OK) {
+      lcd.clear();
+      lcd.print("Store Failed!");
+      delay(3000);
+      return;
+    }
+  
     lcd.clear();
-    lcd.print("Try Again!");
+    lcd.print("Successfully Added!");
+    sendLog("Successfully add new fingerprint!");
     delay(3000);
-    return;
   }
-
-  if (finger.createModel() != FINGERPRINT_OK) {
-    lcd.clear();
-    lcd.print("Error Creating!");
-    delay(3000);
-    return;
-  }
-
-  if (finger.storeModel(id) != FINGERPRINT_OK) {
-    lcd.clear();
-    lcd.print("Store Failed!");
-    delay(3000);
-    return;
-  }
-
-  lcd.clear();
-  lcd.print("Successfully Added!");
-  sendLog("Successfully add new fingerprint!");
-  delay(3000);
 }
 
 // del fingerprint
@@ -372,8 +378,9 @@ void deleteFinger() {
   lcd.clear();
   lcd.print("Enter ID to Del:");
   int id = 0;
-
-  inputIDFinger(&id);
+  boolean successInput = false;
+  
+  inputIDFinger(&id, &successInput);
 
   // validate ID
   if (id < 0 || id > 127) {
@@ -384,17 +391,19 @@ void deleteFinger() {
   }
 
   // del fingerprint
-  lcd.clear();
-  lcd.print("Deleting...");
-  if (finger.deleteModel(id) == FINGERPRINT_OK) {
+  if (successInput) {
     lcd.clear();
-    lcd.print("Deleted!");
-    sendLog("Deleted! Finger no: " + String(finger.fingerID));
-  } else {
-    lcd.clear();
-    lcd.print("Error!");
+    lcd.print("Deleting...");
+    if (finger.deleteModel(id) == FINGERPRINT_OK) {
+      lcd.clear();
+      lcd.print("Deleted!");
+      sendLog("Deleted! Finger no: " + String(finger.fingerID));
+    } else {
+      lcd.clear();
+      lcd.print("Error!");
+    }
+    delay(3000);
   }
-  delay(3000);
 }
 
 // change PIN
