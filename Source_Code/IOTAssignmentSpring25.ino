@@ -266,6 +266,15 @@ void modifyFinger() {
   char choice = waitForInput();
   if (choice == '1') addFinger();
   else if (choice == '2') deleteFinger();
+  else if (choice == '#') {
+    lcd.clear();
+    lcd.print("Cancelled!");
+    delay(3000);
+  } else {
+    lcd.clear();
+    lcd.print("Invalid choice!");
+    delay(3000);
+  }
 }
 
 // add fingerprint
