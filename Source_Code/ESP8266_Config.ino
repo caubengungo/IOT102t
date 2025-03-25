@@ -31,17 +31,14 @@
       encodedData.replace(" ", "%20");  // Encode space character
       encodedData.replace("&", "%26");  // Encode &
 
-      // String url = String(scriptURL) + "?" + encodedData;
-      String url = String(scriptURL) + encodedData;
+      String url = String(scriptURL) + "?" + encodedData;
       http.begin(client, url);
       client.setInsecure(); // Skip SSL testing
-      // String url = String(scriptURL) + "?" + data;
       Serial.println("Requesting URL: " + url);
       
       Serial.print("Free heap memory: ");
       Serial.println(ESP.getFreeHeap());
       http.begin(client, url);
-      // http.addHeader("Connection", "close"); // Fix error HTTP/1.0
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       int httpCode = http.GET();
 
