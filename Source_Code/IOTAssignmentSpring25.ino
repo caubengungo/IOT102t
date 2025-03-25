@@ -135,6 +135,9 @@ void inputIDFinger(int *id) {
         delay(2000);
         return;
       }
+      if (key == '*' && numDigits = 0) { //prevent pressing * without enter id
+        return;
+      }
       if (isdigit(key) && numDigits < 3) { // input limitation is just for numbers and maximum is 3 digits
         *id = *id * 10 + (key - '0');
         numDigits++;
