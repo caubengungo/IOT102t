@@ -242,6 +242,15 @@ void menu() {
       char choice = waitForInput();
       if (choice == '1') modifyFinger();
       else if (choice == '2') changePin();
+      else if (choice == '#') {
+        lcd.clear();
+        lcd.print("Cancelled!");
+        delay(3000);
+      } else {
+        lcd.clear();
+        lcd.print("Invalid choice!");
+        delay(3000);
+      }
     } else {
       invalidVerify();
     }
