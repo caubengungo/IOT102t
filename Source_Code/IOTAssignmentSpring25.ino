@@ -71,6 +71,14 @@ void loop() {
     pinLogin();
   } else if (choice == '3') {
     menu();
+  } else if (choice == '#') {
+    lcd.clear();
+    lcd.print("Cancelled!");
+    delay(3000);
+  } else {
+    lcd.clear();
+    lcd.print("Invalid choice!");
+    delay(3000);
   }
 }
 
@@ -80,9 +88,7 @@ char waitForInput() {
   while (1) {
     key = keypad.getKey();
     if (key) {
-      if (key == '1' || key == '2' || key == '3' || key == '3' || key == '#') {
         return key;
-      }
     }
   }
 }
