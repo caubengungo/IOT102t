@@ -136,6 +136,11 @@ void inputIDFinger(int *id) {
         return;
       }
       if (key == '*' && numDigits == 0) { //prevent pressing * without enter id
+        lcd.clear();
+        lcd.print("ID can not be...");
+        lcd.setCursor(7,1);
+        lcd.print("...empty!");
+        delay(2000);
         return;
       }
       if (isdigit(key) && numDigits < 3) { // input limitation is just for numbers and maximum is 3 digits
