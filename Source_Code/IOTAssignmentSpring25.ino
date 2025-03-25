@@ -424,17 +424,9 @@ void changePin() {
 }
 
 void sendLog(String event) {
-  // mySerial.end();
   espSerial.listen();
   delay(1000);
-  // String logData = "event=" + event + "&method=" + method;
-  // String logData = "event=" + event + "&method=" + method.replace(" ", "%20");
-  // String logData = "event=" + event + "%26" +"method=" + method;
-  // String logData = String(currentTime) + "\t" + event + "\t" + method;
-  // String logData = "?event=" + event  + "&method=" + method;
-  String logData = "?event=" + event;
+  String logData = "event=" + event;
   espSerial.println(logData); // send log through ESP8266
   mySerial.listen();
-
-  // mySerial.begin(57600);
 }
