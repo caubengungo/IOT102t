@@ -39,30 +39,21 @@
 - After successfully connecting the wires based on the circuit_image.png, first, upload the code from the file IOTAssignmentSpring25.ino to the Arduino R3 board. Then, upload the code for the ESP8266 module from the file ESP8266_Config.ino.
 - Note: Before uploading the ESP8266 code, update the WiFi name and password according to the network you are using. Next, create a Google Spreadsheet, then go to the Extensions menu and select App Script. Once the App Script editor opens, copy the following code into a file with a .gs extension:
 
-`
+```
   function doGet(e) {
     try {
       if (!e || !e.parameter) {
         return ContentService.createTextOutput("Lỗi: Không có tham số nào được gửi!");
       }
-  
       var sheet = SpreadsheetApp.openById("166jUu8YVXU5GsvTvkSDcEBCkyNXB-IalRpvbDcO5RZo").getActiveSheet();
-  
       var event = e.parameter.event || "Unknown";
-      // var method = e.parameter.method || "Unknown";
-      // endcodedData = endcodedData.split("&")
-      // let event = endcodedData[0];
-      // let method = endcodedData[1].split("=")[1]
-      // const obj = {event, method};
-      // sheet.appendRow([new Date(), event, method]);
       sheet.appendRow([new Date(), event]);
       return ContentService.createTextOutput(JSON.stringify((obj)));
     } catch (error) {
       return ContentService.createTextOutput("Lỗi: " + error.toString());
     }
   }
- } 
-`
+```
 
 - After that, click "Deploy" and select "New deployment". In the "Select type" section, choose "Web app" and set "Who has access" to "Anyone", then click "Deploy".
 - Once the deployment is complete, copy the URL and paste it into the scriptURL variable inside the ESP8266 code.
