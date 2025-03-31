@@ -38,8 +38,10 @@
 ## Deploying
 - After successfully connecting the wires based on the circuit_image.png, first, upload the code from the file IOTAssignmentSpring25.ino to the Arduino R3 board. Then, upload the code for the ESP8266 module from the file ESP8266_Config.ino.
 - Note: Before uploading the ESP8266 code, update the WiFi name and password according to the network you are using. Next, create a Google Spreadsheet, then go to the Extensions menu and select App Script. Once the App Script editor opens, copy the following code into a file with a .gs extension:
+
 `
   System.out.println('Test');
 `
+
 - After that, click "Deploy" and select "New deployment". In the "Select type" section, choose "Web app" and set "Who has access" to "Anyone", then click "Deploy".
 - Once the deployment is complete, copy the URL and paste it into the scriptURL variable inside the ESP8266 code.
