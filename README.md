@@ -1,6 +1,9 @@
 # 🔐 IOT102c - Smart Lock  
 
-Welcome to our **Smart Lock** project! This project is developed as part of the IOT102c course and focuses on creating a secure and efficient Arduino-based smart lock system using various hardware components.
+- Welcome to our **Smart Lock** project! This project is developed as part of the IOT102c course and focuses on creating a secure and efficient Arduino-based smart lock system using various hardware components.
+- The Smart Lock system using Arduino and ESP8266 enhances security and convenience for personal use.
+- Users can unlock through multiple methods, including PIN code and fingerprint authentication.
+- Access data is logged and sent to Google Spread Sheet via Wi-Fi, allowing remote monitoring.
 
 ## ✨ Features
 
