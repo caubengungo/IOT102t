@@ -61,6 +61,7 @@
       return ContentService.createTextOutput("Lỗi: " + error.toString());
     }
   }
+ } 
 `
 
 - After that, click "Deploy" and select "New deployment". In the "Select type" section, choose "Web app" and set "Who has access" to "Anyone", then click "Deploy".
